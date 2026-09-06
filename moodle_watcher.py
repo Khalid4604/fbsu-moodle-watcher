@@ -252,7 +252,8 @@ def main():
         state["attendance"] = {"ids": sorted(current_att)}
     else:
         print("[معلومة] دوال الحضور (mod_attendance) غير متاحة عبر هذا التوكن على هذا الموقع - تم تخطيها.")
-
+        
+    state["last_checked"] = int(time.time())
     save_state(state)
 
     if is_first_run:
