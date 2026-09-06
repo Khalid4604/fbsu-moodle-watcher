@@ -1,0 +1,41 @@
+name: FBSU Moodle Watcher
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fbsu-moodle-watcher
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run watcher
+        env:
+          MOODLE_URL: ${{ secrets.MOODLE_URL }}
+          MOODLE_USERNAME: ${{ secrets.MOODLE_USERNAME }}
+          MOODLE_PASSWORD: ${{ secrets.MOODLE_PASSWORD }}
+          POKE_API_KEY: ${{ secrets.POKE_API_KEY }}
+        run: python moodle_watcher.py
+
+      - name: Save state (commit state.json if changed)
+        run: |
+          git config user.name "fbsu-moodle-watcher-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add state.json
+          git diff --cached --quiet || git commit -m "تحديث الحالة [skip ci]"
+          git push
