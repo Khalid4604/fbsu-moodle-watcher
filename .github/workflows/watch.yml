@@ -37,5 +37,7 @@ jobs:
           git config user.name "fbsu-moodle-watcher-bot"
           git config user.email "actions@users.noreply.github.com"
           git add state.json
-          git diff --cached --quiet || git commit -m "تحديث الحالة [skip ci]"
+          git diff --cached --quiet && exit 0
+          git commit -m "تحديث الحالة [skip ci]"
+          git pull --rebase origin main
           git push
