@@ -26,5 +26,6 @@
   "notifications": {
     "ids": []
   },
-  "attendance": {}
+  "attendance": {},
+  "last_checked": 1788734473
 }
