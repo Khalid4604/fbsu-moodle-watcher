@@ -9,6 +9,7 @@ FBSU Moodle Watcher
 - محتوى/أنشطة جديدة داخل المقررات (واجبات، ملفات، شباتر، اختبارات... أي عنصر يضيفه الدكتور)
 - واجبات جديدة مع تاريخ التسليم
 - إشعارات جديدة من الموقع (تشمل غالبًا رسائل التحضير/التغييب إذا كان الموقع يرسلها كإشعار)
+- الحضور/الغياب لأي نشاط "attendance" موجود بالمقررات
 
 ثم يرسل ملخص بكل ما هو جديد إلى Poke عبر الـ API الخاص به.
 
@@ -17,11 +18,19 @@ FBSU Moodle Watcher
 
 import json
 import os
+import re
 import sys
 import time
 import urllib.parse
 import urllib.request
 import urllib.error
+
+try:
+    import requests
+    from bs4 import BeautifulSoup
+except ImportError:  # حتى لو ما كانت مثبتة، باقي السكربت (واجبات/محتوى/إشعارات) يشتغل عادي
+    requests = None
+    BeautifulSoup = None
 
 MOODLE_URL = (os.environ.get("MOODLE_URL") or "https://elearning.fbsu.edu.sa").rstrip("/")
 MOODLE_USERNAME = os.environ.get("MOODLE_USERNAME", "")
@@ -90,6 +99,80 @@ def flatten_ws_params(name, values):
     return out
 
 
+def html_login_session():
+    """
+    تسجيل دخول عادي بالمتصفح (نفس اللي تسويه لما تفتح الموقع وتكتب يوزرك
+    وباسوردك) — نحتاجه فقط عشان نقرأ صفحة تقرير الحضور، لأن خدمة تطبيق
+    الجوال (اللي نستخدمها لباقي الميزات) ما توفر بيانات الحضور بهذا الموقع.
+    """
+    if requests is None:
+        raise RuntimeError("مكتبة requests/bs4 غير مثبتة")
+    s = requests.Session()
+    s.headers.update({"User-Agent": "Mozilla/5.0 (fbsu-moodle-watcher)"})
+    login_page = s.get(f"{MOODLE_URL}/login/index.php", timeout=TIMEOUT)
+    m = re.search(r'name="logintoken"\s+value="([^"]+)"', login_page.text)
+    logintoken = m.group(1) if m else ""
+    resp = s.post(
+        f"{MOODLE_URL}/login/index.php",
+        data={
+            "username": MOODLE_USERNAME,
+            "password": MOODLE_PASSWORD,
+            "logintoken": logintoken,
+        },
+        timeout=TIMEOUT,
+    )
+    if "loginerrors" in resp.text or resp.url.rstrip("/").endswith("/login/index.php"):
+        raise RuntimeError("فشل تسجيل الدخول العادي (HTML) لصفحة الحضور")
+    return s
+
+
+def find_attendance_targets(courses_contents_by_id, course_names):
+    """يرجّع قائمة (courseid, coursename, cmid, url) لكل نشاط 'حضور' موجود بأي مقرر."""
+    targets = []
+    for cid, contents in courses_contents_by_id.items():
+        for section in contents or []:
+            for module in section.get("modules", []):
+                if module.get("modname") == "attendance":
+                    targets.append((
+                        cid,
+                        course_names.get(int(cid), ""),
+                        str(module["id"]),
+                        module.get("url", ""),
+                    ))
+    return targets
+
+
+def scrape_attendance_rows(session, url):
+    """
+    يفتح صفحة نشاط الحضور (view.php) ويحاول يطلع صفوف جدول الجلسات/الحالة.
+    ما نفترض شكل ثابت للجدول — ناخذ أكبر جدول بالصفحة (غالبًا هو جدول
+    الجلسات)، ونحوّل كل صف لنص واحد نقارن فيه لاحقًا.
+    """
+    resp = session.get(url, timeout=TIMEOUT)
+    soup = BeautifulSoup(resp.text, "html.parser")
+    tables = soup.find_all("table")
+    if not tables:
+        return []
+    # نفضّل جدول له id/class فيه كلمة attendance، وإلا ناخذ أكبر جدول بالصفحة
+    best = None
+    for t in tables:
+        attrs = " ".join([t.get("id", ""), " ".join(t.get("class", []))]).lower()
+        if "attendance" in attrs:
+            best = t
+            break
+    if best is None:
+        best = max(tables, key=lambda t: len(t.find_all("tr")))
+
+    rows = []
+    for tr in best.find_all("tr"):
+        cells = [c.get_text(" ", strip=True) for c in tr.find_all(["td", "th"])]
+        cells = [c for c in cells if c]
+        if not cells:
+            continue
+        rows.append(" | ".join(cells))
+    return rows
+
+
 def safe_call(label, fn):
     try:
         return fn()
@@ -153,6 +236,7 @@ def main():
 
     prev_modules = state.get("modules", {})
     new_modules_state = dict(prev_modules)
+    courses_contents_by_id = {}  # cid (str) -> contents (نستخدمها لاحقًا لإيجاد أنشطة الحضور)
 
     # 2) محتوى كل مقرر (أي عنصر/نشاط جديد يضيفه الدكتور = شباتر/ملفات/واجبات/اختبارات...)
     for course in courses:
@@ -162,6 +246,7 @@ def main():
         ))
         if not contents:
             continue
+        courses_contents_by_id[cid] = contents
         seen_ids = set(prev_modules.get(cid, []))
         current_ids = set()
         for section in contents:
@@ -229,31 +314,56 @@ def main():
                     ))
             state["notifications"] = {"ids": sorted(current_notif)}
 
-    # 5) محاولة تغطية نظام الحضور (mod_attendance) إن كان مفعّل في هذا الموقع
-    attendance_funcs = [f for f in enabled_functions if f.startswith("mod_attendance_")]
-    if attendance_funcs:
-        att_result = safe_call("جلسات الحضور", lambda: ws_call(
-            token, "mod_attendance_get_courses_with_today_sessions"
-        ) if "mod_attendance_get_courses_with_today_sessions" in enabled_functions else None)
-        prev_att = set(state.get("attendance", {}).get("ids", []))
-        current_att = set()
-        if att_result:
-            for c in att_result:
-                for s in c.get("sessions", []):
-                    sid = str(s.get("id"))
-                    current_att.add(sid)
-                    status = s.get("description", "")
-                    if sid not in prev_att and not is_first_run:
-                        new_items.append((
-                            "تحضير",
-                            f"🗓️ جلسة حضور جديدة/محدثة: {c.get('fullname', '')} {status}".strip(),
-                            None,
-                        ))
-        state["attendance"] = {"ids": sorted(current_att)}
+    # 5) الحضور/الغياب: خدمة تطبيق الجوال ما توفر بيانات mod_attendance بهذا
+    # الموقع، فنسجل دخول عادي (نفس تسجيل الدخول العادي بالمتصفح) ونفتح صفحة
+    # كل نشاط "حضور" موجود بأي مقرر، ونقارن صفوف الجدول مع آخر مرة.
+    # أي مقرر ما فيه نشاط حضور أصلاً يتم تخطيه تلقائيًا.
+    attendance_targets = find_attendance_targets(courses_contents_by_id, course_names)
+    prev_attendance = state.get("attendance", {})
+    new_attendance_state = dict(prev_attendance)
+
+    if not attendance_targets:
+        print("[معلومة] ما فيه أي نشاط 'حضور' (attendance) بمقرراتك حاليًا.")
     else:
-        print("[معلومة] دوال الحضور (mod_attendance) غير متاحة عبر هذا التوكن على هذا الموقع - تم تخطيها.")
-        
+        html_session = safe_call("تسجيل الدخول العادي لصفحة الحضور", html_login_session)
+        if html_session is None:
+            print("[تنبيه] تعذّر تسجيل الدخول لقراءة صفحات الحضور - تم تخطي هذا الجزء بهذا الفحص.")
+        else:
+            for cid, cname, cmid, url in attendance_targets:
+                if not url:
+                    continue
+                rows = safe_call(f"صفحة الحضور - {cname}", lambda url=url: scrape_attendance_rows(html_session, url))
+                if rows is None:
+                    continue
+                is_new_module = cmid not in prev_attendance  # أول مرة نراقب هذا النشاط بالذات
+                seen_rows = set(prev_attendance.get(cmid, []))
+                current_rows = set(rows)
+                for row in rows:
+                    if row in seen_rows or is_first_run or is_new_module:
+                        continue
+                    # الصفحة الافتراضية تعرض الشهر الحالي بس، فالجلسات المستقبلية
+                    # تكون حالتها "?" (لسه ما أخذ الدكتور الحضور). نتجاهل هذي عشان
+                    # ما نرسل تنبيه فاضي، بس نحفظها بالحالة حتى نلاحظ لما تتغيّر فعليًا.
+                    if " | ? | " in f" {row} ":
+                        continue
+                    new_items.append((
+                        "تحضير",
+                        f"🗓️ {cname} — تحديث بالحضور: {row}",
+                        url,
+                    ))
+                # نجمع (union) مع اللي شفناه قبل بدل ما نستبدلها، لأن الصفحة
+                # الافتراضية تعرض شهر واحد بس، وبكذا ما نفقد سجل الأشهر السابقة
+                # ولا نعتبر شهر جديد "كله جديد" أول ما يبان بالعرض الافتراضي.
+                new_attendance_state[cmid] = sorted(seen_rows | current_rows)
+
+    state["attendance"] = new_attendance_state
+
+    # نحدّث وقت آخر فحص دائمًا (حتى لو ما فيه شي جديد) عشان يصير فيه push
+    # للمستودع كل مرة، وبهذا نضمن إن GitHub ما يوقف تشغيل الجدولة تلقائيًا
+    # بسبب "عدم النشاط" (GitHub يوقف الجداول المجدولة تلقائيًا بعد 60 يوم
+    # بدون أي تغيير بالمستودع).
     state["last_checked"] = int(time.time())
+
     save_state(state)
 
     if is_first_run:
