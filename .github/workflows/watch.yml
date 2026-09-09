@@ -2,11 +2,14 @@ name: FBSU Moodle Watcher
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
-  workflow_dispatch: {}
+    # كل 5 دقايق (GitHub Actions يحسب الوقت بتوقيت UTC)
+    # ملاحظة: هذا التكرار يتجاوز الحد المجاني لمستودع Private، لذا لازم
+    # يكون هذا المستودع Public حتى يضل مجاني بدون أي حدود.
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}   # يسمح بتشغيل يدوي من تبويب Actions للتجربة
 
 permissions:
-  contents: write
+  contents: write   # مطلوب حتى يقدر الووركفلو يحفظ (يكومت) ملف state.json
 
 concurrency:
   group: fbsu-moodle-watcher
@@ -23,6 +26,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       - name: Run watcher
         env:
