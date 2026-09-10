@@ -35,7 +35,8 @@
   "notifications": {
     "ids": [
       "380025",
-      "381541"
+      "381541",
+      "381879"
     ]
   },
   "attendance": {
@@ -63,5 +64,5 @@
       "Wed 9 Sept 2026 6:30PM - 8PM | Regular class session | Present | 10 / 10 | Self-recorded"
     ]
   },
-  "last_checked": 1789040481
+  "last_checked": 1789052994
 }
