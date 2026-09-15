@@ -12,7 +12,8 @@
       "53069",
       "56127",
       "56128",
-      "58004"
+      "58004",
+      "59865"
     ],
     "5502": [
       "52756",
@@ -65,7 +66,15 @@
       "Wed 30 Sept 2026 6:30PM - 8PM | Regular class session | ? | ? / 10",
       "Wed 9 Sept 2026 6:30PM - 8PM | Regular class session | ? | ? / 10",
       "Wed 9 Sept 2026 6:30PM - 8PM | Regular class session | Present | 10 / 10 | Self-recorded"
+    ],
+    "59865": [
+      "Date | Description | Status | Points | Remarks",
+      "Mon 21 Sept 2026 12:30PM - 2PM | Regular class session | ? | ? / 10",
+      "Mon 28 Sept 2026 12:30PM - 2PM | Regular class session | ? | ? / 10",
+      "Wed 16 Sept 2026 12:30PM - 2PM | Regular class session | ? | ? / 10",
+      "Wed 23 Sept 2026 12:30PM - 2PM | Regular class session | ? | ? / 10",
+      "Wed 30 Sept 2026 12:30PM - 2PM | Regular class session | ? | ? / 10"
     ]
   },
-  "last_checked": 1789454370
+  "last_checked": 1789474021
 }
