@@ -36,8 +36,7 @@
   },
   "notifications": {
     "ids": [
-      "381541",
-      "381879"
+      "381541"
     ]
   },
   "attendance": {
@@ -78,5 +77,5 @@
       "Wed 30 Sept 2026 12:30PM - 2PM | Regular class session | ? | ? / 10"
     ]
   },
-  "last_checked": 1789646875
+  "last_checked": 1789664142
 }
