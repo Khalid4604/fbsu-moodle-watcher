@@ -13,7 +13,9 @@
       "61213",
       "61684",
       "62526",
-      "63387"
+      "63387",
+      "64339",
+      "64374"
     ],
     "5642": [
       "53069",
@@ -39,7 +41,8 @@
   },
   "assignments": {
     "5414": [
-      "8472"
+      "8472",
+      "9047"
     ],
     "5642": [],
     "5502": [
@@ -80,6 +83,7 @@
       "Wed 21 Oct 2026 12AM | Regular class session | Present | 10 / 10",
       "Wed 23 Sept 2026 12AM | Regular class session | ? | ? / 10",
       "Wed 28 Oct 2026 12AM | Regular class session | ? | ? / 10",
+      "Wed 28 Oct 2026 12AM | Regular class session | Present | 10 / 10",
       "Wed 30 Sept 2026 12AM | Regular class session | ? | ? / 10",
       "Wed 30 Sept 2026 12AM | Regular class session | Present | 10 / 10",
       "Wed 7 Oct 2026 12AM | Regular class session | ? | ? / 10",
@@ -132,5 +136,5 @@
       "Wed 30 Sept 2026 12:30PM - 2PM | Regular class session | ? | ? / 10"
     ]
   },
-  "last_checked": 1793161801
+  "last_checked": 1793184369
 }
