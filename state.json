@@ -40,7 +40,8 @@
       "63545",
       "64178",
       "64308",
-      "64988"
+      "64988",
+      "65498"
     ]
   },
   "assignments": {
@@ -160,7 +161,19 @@
       "Wed 16 Sept 2026 12:30PM - 2PM | Regular class session | ? | ? / 10",
       "Wed 23 Sept 2026 12:30PM - 2PM | Regular class session | ? | ? / 10",
       "Wed 30 Sept 2026 12:30PM - 2PM | Regular class session | ? | ? / 10"
+    ],
+    "65498": [
+      "Date | Description | Status | Points | Remarks",
+      "Mon 16 Nov 2026 11AM - 12:30PM | Regular class session | ? | ? / 10",
+      "Mon 2 Nov 2026 11AM - 12:30PM | Regular class session | ? | ? / 10",
+      "Mon 23 Nov 2026 11AM - 12:30PM | Regular class session | ? | ? / 10",
+      "Mon 30 Nov 2026 11AM - 12:30PM | Regular class session | ? | ? / 10",
+      "Mon 9 Nov 2026 11AM - 12:30PM | Regular class session | ? | ? / 10",
+      "Wed 11 Nov 2026 11AM - 12:30PM | Regular class session | ? | ? / 10",
+      "Wed 18 Nov 2026 11AM - 12:30PM | Regular class session | ? | ? / 10",
+      "Wed 25 Nov 2026 11AM - 12:30PM | Regular class session | ? | ? / 10",
+      "Wed 4 Nov 2026 11AM - 12:30PM | Regular class session | ? | ? / 10"
     ]
   },
-  "last_checked": 1794165157
+  "last_checked": 1794178402
 }
