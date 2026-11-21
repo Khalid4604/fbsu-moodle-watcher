@@ -62,8 +62,7 @@
   "notifications": {
     "ids": [
       "456120",
-      "464185",
-      "484184"
+      "464185"
     ]
   },
   "attendance": {
@@ -188,5 +187,5 @@
       "Wed 4 Nov 2026 11AM - 12:30PM | Regular class session | Present | 10 / 10"
     ]
   },
-  "last_checked": 1795251037
+  "last_checked": 1795278408
 }
